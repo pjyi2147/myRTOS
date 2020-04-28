@@ -5,7 +5,7 @@ TARGET = rvpb
 
 CC = arm-none-eabi-gcc
 AS = arm-none-eabi-as
-LD = arm-none-eabi-ld
+LD = arm-none-eabi-gcc
 OC = arm-none-eabi-objcopy
 
 LINKER_SCRIPT = ./myRTOS.ld
@@ -30,6 +30,8 @@ INC_DIRS = -I include 		\
 
 CFLAGS = -c -g -std=c11
 
+LDFLAGS = -nostartfiles -nostdlib -nodefaultlibs -static -lgcc
+
 myRTOS = build/myRTOS.axf
 myRTOS_bin = build/myRTOS.bin
 
@@ -50,14 +52,14 @@ debug: $(myRTOS)
 gdb:
 	arm-none-eabi-gdb
 
-$(myRTOS) : $(ASM_OBJS) $(C_OBJS) $(LINKER_SCRIPT)
-	$(LD) -n -T $(LINKER_SCRIPT) -o $(myRTOS) $(ASM_OBJS) $(C_OBJS) -Map=$(MAP_FILE)
+$(myRTOS): $(ASM_OBJS) $(C_OBJS) $(LINKER_SCRIPT)
+	$(LD) -n -T $(LINKER_SCRIPT) -o $(myRTOS) $(ASM_OBJS) $(C_OBJS) -Wl,-Map=$(MAP_FILE) $(LDFLAGS)
 	$(OC) -O binary $(myRTOS) $(myRTOS_bin)
 
 build/%.os: %.S
 	mkdir -p $(shell dirname $@)
-	$(CC) -march=$(ARCH) -mcpu=$(MCPU) $(INC_DIRS) $(CFLAGS) -o $@ $<
+	$(CC) -march=$(ARCH) -mcpu=$(MCPU) -marm $(INC_DIRS) $(CFLAGS) -o $@ $<
 
 build/%.o: %.c
 	mkdir -p $(shell dirname $@)
-	$(CC) -march=$(ARCH) -mcpu=$(MCPU) $(INC_DIRS) $(CFLAGS) -o $@ $<
+	$(CC) -march=$(ARCH) -mcpu=$(MCPU) -marm $(INC_DIRS) $(CFLAGS) -o $@ $<
