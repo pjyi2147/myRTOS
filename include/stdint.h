@@ -28,6 +28,8 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #ifndef _GCC_STDINT_H
 #define _GCC_STDINT_H
 
+#define NULL 0
+
 /* 7.8.1.1 Exact-width integer types */
 
 #ifdef __INT8_TYPE__

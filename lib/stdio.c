@@ -4,8 +4,6 @@
 
 #define PRINTF_BUF_LEN 1024
 
-#define NULL 0
-
 static char sPrintf_buf[PRINTF_BUF_LEN];
 
 uint32_t putstr(const char* s) 
