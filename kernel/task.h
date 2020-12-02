@@ -1,5 +1,5 @@
 #ifndef KERNEL_TASK_H_
-#define KERNEL_TAKS_H_
+#define KERNEL_TASK_H_
 
 #include "MemoryMap.h"
 
