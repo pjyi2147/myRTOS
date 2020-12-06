@@ -107,14 +107,35 @@ void User_task0(void)
 
     debug_printf("User Task #0 SP=0x%x\n", &local);
 
+    uint8_t cmdBuf[16];
+    uint32_t cmdBufIdx = 0;
+    uint8_t uartch = 0;
+
     while(true) 
     {
         KernelEventFlag_t handle_event = Kernel_wait_events(KernelEventFlag_UartIn|KernelEventFlag_CmdOut);
         switch(handle_event)
         {
             case KernelEventFlag_UartIn:
-                debug_printf("\nEvent handled by Task0\n");
-                Kernel_send_events(KernelEventFlag_CmdIn);
+                Kernel_recv_msg(KernelMsgQ_Task0, &uartch, 1);
+
+                if (uartch == '\r')
+                {
+                    cmdBuf[cmdBufIdx] = '\0';
+                    // 잠재적인 에러 가능 (만일 못 보낸다면?)
+                    Kernel_send_msg(KernelMsgQ_Task1, &cmdBufIdx, 1);
+                    Kernel_send_msg(KernelMsgQ_Task1, cmdBuf, cmdBufIdx);
+                    Kernel_send_events(KernelEventFlag_CmdIn);
+
+                    cmdBufIdx = 0;
+                }
+                else
+                {
+                    cmdBuf[cmdBufIdx] = uartch;
+                    cmdBufIdx++;
+                    cmdBufIdx %= 16;
+                }
+                debug_printf("Event handled by Task0\n");
                 break;
             case KernelEventFlag_CmdOut:
                 debug_printf("\nCmdOut Event handled by Task0\n");
@@ -128,6 +149,9 @@ void User_task1(void)
 {
     uint32_t local = 0;
     debug_printf("User Task #1 SP=0x%x\n", &local);
+
+    uint8_t cmdlen = 0;
+    uint8_t cmd[16] = {0};
         
     while(true) 
     {
@@ -135,7 +159,11 @@ void User_task1(void)
         switch(handle_event)
         {
             case KernelEventFlag_CmdIn:
-                debug_printf("\nEvent handled by Task1\n");
+                memclr(cmd, 16);
+                Kernel_recv_msg(KernelMsgQ_Task1, &cmdlen, 1);
+                Kernel_recv_msg(KernelMsgQ_Task1, cmd, cmdlen);
+
+                debug_printf("\nRecv cmd: %s\n", cmd);
                 break;
         }
         Kernel_yield();
