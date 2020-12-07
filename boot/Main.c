@@ -78,7 +78,9 @@ static void Kernel_init(void)
     uint32_t taskId;
 
     Kernel_task_init();
-    // Kernel_event_flag_init();
+    Kernel_event_flag_init();
+    Kernel_msgQ_init();
+    Kernel_sem_init(1);
 
     taskId = Kernel_task_create(User_task0);
     if (NOT_ENOUGH_TASK_NUM == taskId)
@@ -99,6 +101,22 @@ static void Kernel_init(void)
     }
 
     Kernel_start();
+}
+
+static uint32_t shared_value;
+static void Test_critical_section(uint32_t p, uint32_t taskId)
+{
+    // Kernel_lock_sem();
+    Kernel_lock_mutex();
+
+    debug_printf("User Task $%u Send %u\n", taskId, p);
+    shared_value = p;
+    Kernel_yield();
+    delay(1000);
+    debug_printf("User Task $%u Shared value %u\n", taskId, shared_value);
+
+    // Kernel_unlock_sem();
+    Kernel_unlock_mutex();
 }
 
 void User_task0(void)
@@ -138,7 +156,8 @@ void User_task0(void)
                 debug_printf("Event handled by Task0\n");
                 break;
             case KernelEventFlag_CmdOut:
-                debug_printf("\nCmdOut Event handled by Task0\n");
+                Test_critical_section(5, 0);
+                // debug_printf("\nCmdOut Event handled by Task0\n");
                 break;
         }
         Kernel_yield();
@@ -155,7 +174,7 @@ void User_task1(void)
         
     while(true) 
     {
-        KernelEventFlag_t handle_event = Kernel_wait_events(KernelEventFlag_CmdIn);
+        KernelEventFlag_t handle_event = Kernel_wait_events(KernelEventFlag_CmdIn|KernelEventFlag_Unlock);
         switch(handle_event)
         {
             case KernelEventFlag_CmdIn:
@@ -164,6 +183,10 @@ void User_task1(void)
                 Kernel_recv_msg(KernelMsgQ_Task1, cmd, cmdlen);
 
                 debug_printf("\nRecv cmd: %s\n", cmd);
+                break;
+            case KernelEventFlag_Unlock:
+                // Kernel_unlock_sem();
+                Kernel_unlock_mutex();
                 break;
         }
         Kernel_yield();
@@ -177,6 +200,7 @@ void User_task2(void)
     debug_printf("User Task #2 SP=0x%x\n", &local);
     while(true) 
     {
+        Test_critical_section(3, 2);
         Kernel_yield();
     }
 }
